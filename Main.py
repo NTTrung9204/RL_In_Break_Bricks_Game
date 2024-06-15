@@ -1,75 +1,94 @@
 from Brick import Brick, ManageBrick
 from Ball import Ball, vector
 
+from Agent import Agent
+from Env import Env
+
 import pygame
 import sys
+import numpy as np
 
-ManageBrickInstance = ManageBrick()
-ball = Ball(10, 200, 10, "red", vector(5, 0.3))
-shelf = Brick(400, 50, 200, 20, "blue")
+# ManageBrickInstance = ManageBrick()
+# ball = Ball(10, 200, 10, "red", vector(5, 0.3))
+# MyEnv.Shelf = Brick(400, 50, 200, 20, "blue")
 clock = pygame.time.Clock()
 
 pygame.init()
 
 update = True
-
 step = 0
+MyAgent = Agent(4, 3, "Model/DQL_1.keras")
+MyEnv = Env()
+
+state = MyEnv.get_state()
+state = np.reshape(state, [1, MyAgent.state_size])
 
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+
+    # Agent make action
+    action = MyAgent.get_action(state)
+    if action == 0:
+        MyEnv.Shelf.x -= 5
+    if action == 1:
+        MyEnv.Shelf.x += 5
+
+    next_state, reward, done = MyEnv.step(action)
+    next_state = np.reshape(next_state, [1, MyAgent.state_size])
+    state = next_state
     
     keys = pygame.key.get_pressed()
     if keys[pygame.K_LEFT]:
-        shelf.x -= 5
-        if shelf.x <= 0:
-            shelf.x = 0
-        if shelf.x >= 600:
-            shelf.x = 600
+        MyEnv.Shelf.x -= 5
+        if MyEnv.Shelf.x <= 0:
+            MyEnv.Shelf.x = 0
+        if MyEnv.Shelf.x >= 600:
+            MyEnv.Shelf.x = 600
     if keys[pygame.K_RIGHT]:
-        shelf.x += 5
+        MyEnv.Shelf.x += 5
 
-    ball.move()
+    MyEnv.Ball.move()
     collision = False
     side = None
-    for brick in ManageBrickInstance.bricks:
+    for brick in MyEnv.ManagerBrick.bricks:
         if brick.is_broken():
             continue
-        collision, side = brick.check_collision(ball)
+        collision, side = brick.check_collision(MyEnv.Ball)
         if collision:
             brick.handle_collision()
             update = True
             break
 
     if collision == False:
-        collision, side = shelf.check_collision(ball)
+        collision, side = MyEnv.Shelf.check_collision(MyEnv.Ball)
 
     if collision:
-        ball.handle_collision(side)
+        MyEnv.Ball.handle_collision(side)
 
-    if ball.x <= ball.radius or ball.x >= 800 - ball.radius:
-        ball.vector.handle_collision("left")
+    if MyEnv.Ball.x <= MyEnv.Ball.radius or MyEnv.Ball.x >= 800 - MyEnv.Ball.radius:
+        MyEnv.Ball.vector.handle_collision("left")
 
-    if ball.y <= ball.radius or ball.y >= 600 - ball.radius:
-        ball.vector.handle_collision("top")
+    if MyEnv.Ball.y <= MyEnv.Ball.radius or MyEnv.Ball.y >= 600 - MyEnv.Ball.radius:
+        MyEnv.Ball.vector.handle_collision("top")
 
     screen = pygame.display.set_mode((800, 600))
     screen.fill("black")
 
     if update == True:
-        for brick in ManageBrickInstance.bricks:
+        for brick in MyEnv.ManagerBrick.bricks:
             if not brick.is_broken():
                 pygame.draw.rect(screen, brick.color, (brick.x, 600 - brick.y, brick.width, brick.height))
         update = True
 
-    if ManageBrickInstance.broken_all():
+    if MyEnv.ManagerBrick.broken_all():
         break
 
-    pygame.draw.rect(screen, shelf.color, (shelf.x, 600 - shelf.y, shelf.width, shelf.height))
+    pygame.draw.rect(screen, MyEnv.Shelf.color, (MyEnv.Shelf.x, 600 - MyEnv.Shelf.y, MyEnv.Shelf.width, MyEnv.Shelf.height))
 
-    pygame.draw.circle(screen, ball.color, (ball.x, 600 - ball.y), ball.radius)
+    pygame.draw.circle(screen, MyEnv.Ball.color, (MyEnv.Ball.x, 600 - MyEnv.Ball.y), MyEnv.Ball.radius)
 
     pygame.display.flip()
     clock.tick(60)

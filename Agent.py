@@ -2,23 +2,29 @@ from collections import deque
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import load_model
 import numpy as np
 import random
+import time
 
 class Agent:
-    def __init__(self, state_size, action_size):
+    def __init__(self, state_size, action_size, model = None):
         self.state_size = state_size
         self.action_size = action_size
 
-        self.gamma = 0.9
-        self.epsilon = 1
-        self.epsilon_min = 0.1
-        self.epsilon_decay = 0.995
+        self.gamma = 0.85
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.9995
         self.learning_rate = 0.0005
 
         self.memory = deque(maxlen=50000)
 
-        self.model = self._build_model()
+        if model is None:
+            self.model = self._build_model()
+            self.epsilon = 1
+        else:
+            self.model = load_model(model)
+            self.epsilon = 0.01
 
     def _build_model(self):
         model = Sequential()
@@ -41,16 +47,41 @@ class Agent:
     
     def replay(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
+        state_X = []
+        target_Y = []
+        
+        # Trích xuất tất cả states và next_states từ minibatch để dự đoán theo batch
+        states = np.array([transition[0] for transition in minibatch]).reshape(batch_size, 4)
+        next_states = np.array([transition[3] for transition in minibatch]).reshape(batch_size, 4)
+        
+        # Dự đoán giá trị Q cho tất cả states và next_states trong batch
+        current_qs = self.model.predict(states, verbose = 0)
+        next_qs = self.model.predict(next_states, verbose = 0)
+        
         loss = 0
-        for state, action, reward, next_state, done in minibatch:
-            target = reward
-            if not done:
-                target = (reward + self.gamma * np.amax(self.model.predict(next_state, verbose = 0)[0]))
-            target_f = self.model.predict(state, verbose = 0)
-            loss += (target_f[0][action] - target) ** 2
-            target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose = 0)
+
+        for i, (state, action, reward, next_state, done) in enumerate(minibatch):
+            if done:
+                target = reward
+            else:
+                target = reward + self.gamma * np.amax(next_qs[i])
+            
+            target_f = current_qs[i]
+            old_value = target_f[action]
+            target_f[action] = target
+            
+            state_X.append(state)
+            target_Y.append(target_f)
+            
+            loss += (old_value - target) ** 2
+            
+        state_X = np.array(state_X).reshape(batch_size, 4)
+        target_Y = np.array(target_Y).reshape(batch_size, 3)
+
+        # Huấn luyện mô hình trên toàn bộ batch
+        self.model.fit(state_X, target_Y, epochs=1, verbose=0)
+
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
-
+        
         return loss / batch_size

@@ -2,6 +2,7 @@ from Agent import Agent
 from Env import Env
 import sys
 import numpy as np
+import math
 
 MyEnv = Env()
 MyAgent = Agent(4, 3)
@@ -18,12 +19,18 @@ for episode in range(episodes):
     total_reward = 0
     loss = 0
     for step in range(max_step):
-        sys.stdout.write(f"\rEpisode {episode}/{episodes}, step {step}, reward {total_reward:.3f}, epsilon {MyAgent.epsilon:.3f}, loss {loss:.3f}")
-        action = MyAgent.get_action(state)
+        if step % 2 == 0 or (state[0][-1] >= math.pi and state[0][-1] <= 2 * math.pi and state[0][-2] <= 400):
+            action = MyAgent.get_action(state)
+        else:
+            action = 2 # do nothing
+        sys.stdout.write(f"\rEpisode {episode}/{episodes}, step {step}, reward {total_reward:.3f}, epsilon {MyAgent.epsilon:.3f}, loss {loss:.3f}, action {action}")
         next_state, reward, done = MyEnv.step(action)
         next_state = np.reshape(next_state, [1, MyAgent.state_size])
 
-        MyAgent.remember(state, action, reward, next_state, done)
+        if step % 2 == 0 or (state[0][-1] >= math.pi and state[0][-1] <= 2 * math.pi and state[0][-2] <= 400):
+            # state[0][-1]: angle phi of vector, capture when ball drop
+            # state[0][-2]: coordinate y of ball
+            MyAgent.remember(state, action, reward, next_state, done)
 
         state = next_state
 
@@ -34,18 +41,20 @@ for episode in range(episodes):
 
         if done:
             if MyEnv.ManagerBrick.broken_all():
+                print(f" Win Game! Total Reward {total_reward:.3f}")
                 QuantitiesDone += 1
+            else:
+                print(f" Drop Ball! Total Reward {total_reward:.3f}")
             break
 
         if np.equal(state[0], MyEnv.get_state()).all() is False:
             print(state[0], MyEnv.get_state())
             raise "State Not Same!"
 
-    if QuantitiesDone < 5 and MyAgent.epsilon <= 0.15:
+    if QuantitiesDone < 10 and MyAgent.epsilon <= 0.1:
         MyAgent.epsilon = 0.5
-    print()
 
-MyAgent.model.save('Model/DQL_1.keras')
+MyAgent.model.save('Model/DQL_2.keras')
 
 MyAgent.epsilon = 0.01
 MyEnv.reset()

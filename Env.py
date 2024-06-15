@@ -4,32 +4,51 @@ import random
 import math
 import numpy as np
 
+
 class Env:
     def __init__(self):
         self.Width = 800
         self.Height = 600
+        self.reset()
 
     def reset(self):
         self.ManagerBrick = ManageBrick()
         self.Shelf = Brick(random.randint(0, self.Height - 200), 50, 200, 20, "blue")
-        self.Ball = Ball(10, 200, 10, "red", vector(5, random.uniform(0, 2*math.pi)))
-    
+        self.Ball = Ball(
+            random.randint(10, 790),
+            random.randint(250, 350),
+            10,
+            "red",
+            vector(5, random.uniform(1.2 * math.pi, 1.8 * math.pi)),
+        )
+
     def get_state(self):
         return np.array([self.Shelf.x, self.Ball.x, self.Ball.y, self.Ball.vector.phi])
-    
+
     def step(self, action):
-        if action == 0: # Go to left
+        if action == 0:  # Go to left
             self.Shelf.x -= 5
             if self.Shelf.x <= 0:
                 self.Shelf.x = 0
-        elif action == 1: # Go to right
+        elif action == 1:  # Go to right
             self.Shelf.x += 5
             if self.Shelf.x >= self.Width - self.Shelf.width:
                 self.Shelf.x = self.Width - self.Shelf.width
-        elif action == 2: # freeze
+        elif action == 2:  # freeze
             self.Shelf.x += 0
 
         self.Ball.move()
+
+        # handle ball in shelf
+        if (
+            self.Ball.x >= self.Shelf.x
+            and self.Ball.x <= self.Shelf.x + self.Shelf.width
+            and self.Ball.y <= self.Shelf.y
+            and self.Ball.y >= self.Shelf.y - self.Shelf.height
+        ):
+            self.Ball.move()
+            self.Ball.move()
+            self.Ball.move()
 
         reward = 0
 
@@ -44,16 +63,22 @@ class Env:
 
         if collision == False:
             collision, side = self.Shelf.check_collision(self.Ball)
-            if side in ["top", "top_left", "top_right"]:
+            if side in ["top"]:
                 reward += 2
 
-                center_shelf = self.Shelf.x + self.Shelf.width/2
+                center_shelf = self.Shelf.x + self.Shelf.width / 2
                 reward += 0.01 * (100 - abs(self.Ball.x - center_shelf))
 
         if collision:
             self.Ball.handle_collision(side)
+        else:
+            center_shelf = self.Shelf.x + self.Shelf.width / 2
+            reward -= 0.001 * abs(center_shelf - self.Ball.x)
 
-        if self.Ball.x <= self.Ball.radius or self.Ball.x >= self.Width - self.Ball.radius:
+        if (
+            self.Ball.x <= self.Ball.radius
+            or self.Ball.x >= self.Width - self.Ball.radius
+        ):
             self.Ball.vector.handle_collision("left")
 
         if self.Ball.y >= self.Height - self.Ball.radius:
@@ -62,10 +87,8 @@ class Env:
         if self.Ball.y <= self.Ball.radius:
             reward -= 10
             return self.get_state(), reward, True
-        
+
         if self.ManagerBrick.broken_all():
             return self.get_state(), reward, True
-        
-        return self.get_state(), reward, False
-        
 
+        return self.get_state(), reward, False

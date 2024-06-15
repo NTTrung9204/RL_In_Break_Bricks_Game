@@ -1,4 +1,5 @@
 import math
+import random
 
 class Ball:
     def __init__(self, x, y, radius, color, vector):
@@ -22,17 +23,30 @@ class vector:
         self.phi = phi
         self.update()
 
+    def standardized_angle_phi(self):
+        # make sure angle phi in range(0, 2PI)
+        if self.phi < 0:
+            self.phi += 2 * math.pi
+        
+        if self.phi > 2 * math.pi:
+            self.phi -= 2 * math.pi
+
     def handle_collision_vertical(self):
         self.phi = -self.phi
+        self.standardized_angle_phi()
     
     def handle_collision_horizontal(self):
         self.phi = math.pi - self.phi
-
+        self.standardized_angle_phi()
 
     def handle_collision_corner(self):
         self.phi = math.pi + self.phi
+        self.standardized_angle_phi()
 
     def update(self):
+        if random.random() <= 0.05:
+            self.phi += random.uniform(-0.1, 0.1)
+        self.standardized_angle_phi()
         self.x = self.a * math.cos(self.phi)
         self.y = self.a * math.sin(self.phi)
 
