@@ -19,7 +19,7 @@ class Env:
             random.randint(250, 350),
             10,
             "red",
-            vector(5, random.uniform(1.2 * math.pi, 1.8 * math.pi)),
+            vector(5, random.uniform(0, 2 * math.pi)),
         )
 
     def get_state(self):
@@ -46,9 +46,8 @@ class Env:
             and self.Ball.y <= self.Shelf.y
             and self.Ball.y >= self.Shelf.y - self.Shelf.height
         ):
-            self.Ball.move()
-            self.Ball.move()
-            self.Ball.move()
+            self.Ball.x = 400
+            self.Ball.y = 300
 
         reward = 0
 
@@ -73,7 +72,7 @@ class Env:
             self.Ball.handle_collision(side)
         else:
             center_shelf = self.Shelf.x + self.Shelf.width / 2
-            reward -= 0.001 * abs(center_shelf - self.Ball.x)
+            reward -= 0.002 * abs(center_shelf - self.Ball.x)
 
         if (
             self.Ball.x <= self.Ball.radius

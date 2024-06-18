@@ -45,7 +45,7 @@ class vector:
 
     def update(self):
         if random.random() <= 0.05:
-            self.phi += random.uniform(-0.1, 0.1)
+            self.phi += random.uniform(-0.3, 0.3)
         self.standardized_angle_phi()
         self.x = self.a * math.cos(self.phi)
         self.y = self.a * math.sin(self.phi)

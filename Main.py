@@ -16,9 +16,9 @@ clock = pygame.time.Clock()
 pygame.init()
 
 update = True
-step = 0
-MyAgent = Agent(4, 3, "Model/DQL_1.keras")
+MyAgent = Agent(4, 3, "Model/DQL_6.keras")
 MyEnv = Env()
+total_reward = 0
 
 state = MyEnv.get_state()
 state = np.reshape(state, [1, MyAgent.state_size])
@@ -37,6 +37,7 @@ while True:
         MyEnv.Shelf.x += 5
 
     next_state, reward, done = MyEnv.step(action)
+    total_reward += reward
     next_state = np.reshape(next_state, [1, MyAgent.state_size])
     state = next_state
     
@@ -93,5 +94,4 @@ while True:
     pygame.display.flip()
     clock.tick(60)
 
-    step += 1
-    print(step)
+    sys.stdout.write(f"\rReward {total_reward:.3f}, Ball ({MyEnv.Ball.x}, {MyEnv.Ball.y}), Vector ({MyEnv.Ball.vector.x}, {MyEnv.Ball.vector.y})")
