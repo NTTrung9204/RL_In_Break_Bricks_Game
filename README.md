@@ -83,7 +83,9 @@ Contains pre-trained models that can be used to test the agent without retrainin
 Clone the repository and install the necessary dependencies:
 
 git clone https://github.com/NTTrung9204/RL_In_Break_Bricks_Game.git
+
 cd RL_In_Break_Bricks_Game
+
 pip install -r requirements.txt
 
 ## Usage
